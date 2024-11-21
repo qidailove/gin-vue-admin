@@ -278,10 +278,10 @@ const changeDB = (val) => {
   }
 }
 const onSubmit = async() => {
-  if (form.adminPassword.length < 6) {
+  if (form.adminPassword.length < 4) {
     ElMessage({
       type: 'error',
-      message: '密码长度不能小于6位',
+      message: '密码长度不能小于4位',
     })
     return
   }

@@ -1,11 +1,11 @@
 package system
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/common/response"
-	systemRes "github.com/flipped-aurora/gin-vue-admin/server/model/system/response"
 	"github.com/gin-gonic/gin"
 	"github.com/mojocn/base64Captcha"
 	"go.uber.org/zap"
@@ -45,17 +45,19 @@ func (b *BaseApi) Captcha(c *gin.Context) {
 	// cp := base64Captcha.NewCaptcha(driver, store.UseWithCtx(c))   // v8下使用redis
 	cp := base64Captcha.NewCaptcha(driver, store)
 	id, b64s, _, err := cp.Generate()
+	b64s = removeBase64Prefix(b64s)
 	if err != nil {
 		global.GVA_LOG.Error("验证码获取失败!", zap.Error(err))
 		response.FailWithMessage("验证码获取失败", c)
 		return
 	}
-	response.OkWithDetailed(systemRes.SysCaptchaResponse{
-		CaptchaId:     id,
-		PicPath:       b64s,
-		CaptchaLength: global.GVA_CONFIG.Captcha.KeyLong,
-		OpenCaptcha:   oc,
-	}, "验证码获取成功", c)
+
+	resultMap := make(map[string]any)
+	resultMap["captchaOnOff"] = oc
+	resultMap["code"] = http.StatusOK
+	resultMap["img"] = b64s
+	resultMap["uuid"] = id
+	c.JSON(http.StatusOK, resultMap)
 }
 
 // 类型转换
@@ -67,4 +69,12 @@ func interfaceToInt(v interface{}) (i int) {
 		i = 0
 	}
 	return
+}
+
+func removeBase64Prefix(base64Str string) string {
+	prefix := "data:image/png;base64,"
+	if len(base64Str) > len(prefix) && base64Str[:len(prefix)] == prefix {
+		return base64Str[len(prefix):]
+	}
+	return base64Str
 }
